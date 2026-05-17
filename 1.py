@@ -44,5 +44,6 @@ json_data = {
     ],
     'need_filter_image': False,
 }
+json_data['category'] = ""
 response = requests.post(url, headers=headers, json=json_data)
 print(response.text)
