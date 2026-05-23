@@ -1,7 +1,3 @@
-const _name_ = "test";
-const fs = require("fs");
-    const path = require("path");
-fs.writeFileSync("log.txt", "")
 //全局对象配置
 debugger
 ldvm = {
@@ -17,10 +13,7 @@ ldvm.memory.filterProxyProp = [
     ldvm.memory.symbolProxy, 
     Symbol.toPrimitive, "eval", Object.prototype, Array.prototype, Function.prototype,
     String.prototype, Number.prototype, Boolean.prototype,
-    Math, Date, RegExp, JSON, Promise, 'prototype', '__proto__', 
-    "Document", "Window", "History", "Navigator", "Location", "Performance","EventTarget", "Event", 
-    'constructor'
-    
+    Math, Date, RegExp, JSON, Promise
 ]//需要过滤的属性
 ldvm.memory.symbolData = Symbol("data"); // 保存当前对象上原型的属性
 ldvm.memory.tag = []//存储tag标签
@@ -274,7 +267,9 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
     ldvm.toolsFunc.dispatch = function dispatch(self, obj, objName, funcName, argList, defaultValue) {
         let name = `${objName}_${funcName}`;
         const proto = obj.prototype || obj;
-        if (!(self instanceof proto.constructor)) {
+        const __instanceofResult = self instanceof proto.constructor;
+        if (!__instanceofResult) {
+            console.log('[dispatch fail]', name, 'self type:', typeof self, 'self constr:', self?.constructor?.name, 'self toString:', Object.prototype.toString.call(self), 'self===globalThis:', self === globalThis, 'self===window:', self === window, 'proto===window:', proto === window, 'instanceof:', __instanceofResult);
             return ldvm.toolsFunc.throwError('TypeError', 'Illegal invocation');
         }
 
@@ -390,81 +385,16 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
     ldvm.envFunc.Window_self_get = function Window_self_get() {
         return window;
     };
-    ldvm.envFunc.Window_self_set = function Window_self_set() { 
-        return window; 
-    };
     ldvm.envFunc.Window_parent_set = function Window_parent_set() {
         return window;
     };
-    ldvm.envFunc.Window_top_set = function Window_top_set() {
-
-        return window;
-    };
-    ldvm.envFunc.Window_parent_get = function Window_parent_get() {
-        return window;
-    };
-    ldvm.envFunc.Performance_now = function Performance_now() {
-        return 1090439.5999999046
-    }
-    ldvm.envFunc.Document_cookie_get = function Document_cookie_get() {
-        return 'abRequestId=4222a77c-10b2-5f59-b50a-e01d52c92c8c; a1=19d66558c7dsjg559n648ipqioxw68nif3go29mvj50000338198; webId=13ed1adc9daa427ad356093927d6d34f; gid=yjfKK22jy8idyjfKK22YSqj6WfMVk22jIK4YkhV3UA3lCl28EKYI3J888qqYyjY8S0JSSDKi; ets=1779012627065; xsecappid=xhs-pc-web; webBuild=6.12.1; loadts=1779550621550; websectiga=82e85efc5500b609ac1166aaf086ff8aa4261153a448ef0be5b17417e4512f28; unread={%22ub%22:%226a1041f9000000003701f8e2%22%2C%22ue%22:%2269fec80e000000001b021b41%22%2C%22uc%22:23}'
-
-    }
+    ldvm.envFunc.Window_self_set = function Window_self_set() { return window; };
 }()
 
-!function () {
-    // 安全的对象转字符串（兼容循环引用）
-    const safeStringify = (obj) => {
-        const seen = new WeakSet();
-        return JSON.stringify(obj, (key, value) => {
-            if (typeof value === 'object' && value !== null) {
-                if (seen.has(value)) return '[Circular Reference]';
-                seen.add(value);
-            }
-            return value;
-        }, 2);
-    };
-
-    ldvm.toolsFunc.printLog = function printLog(logList) {
-        let log = "";
-        for (let i = 0; i < logList.length; i++) {
-            const item = logList[i];
-            if (typeof item === "function") {
-                log += item.toString() + " ";
-            } else if (typeof item === "object" && item !== null) {
-                try {
-                    const seen = new WeakSet();
-                    log += JSON.stringify(item, (k, v) => {
-                        if (typeof v === 'object' && v !== null) {
-                            if (seen.has(v)) return '[Circular]';
-                            seen.add(v);
-                        }
-                        return v;
-                    }, 2) + " ";
-                } catch (e) {
-                    log += '[Circular] ';
-                }
-            } else if (typeof item === "symbol") {
-                log += item.toString() + " ";
-            } else {
-                log += String(item) + " ";
-            }
-            log += "\r\n";
-        }
-
-        try {
-            fs.appendFileSync("log.txt", log, "utf8");
-        } catch (e) {
-            console.error("写入失败:", e);
-        }
-    };
-}();
 //env相关代码
 EventTarget = function EventTarget(){}
 ldvm.toolsFunc.safeProto(EventTarget, "EventTarget");
 Object.setPrototypeOf(EventTarget.prototype, Object.prototype);
-ldvm.toolsFunc.defineProperty(EventTarget.prototype, "addEventListener", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, EventTarget.prototype, "EventTarget", "addEventListener", arguments)}});
-
 WindowProperties = function WindowProperties(){}
 ldvm.toolsFunc.safeProto(WindowProperties, "WindowProperties")
 Object.setPrototypeOf(WindowProperties.prototype, EventTarget.prototype)
@@ -489,8 +419,6 @@ Object.setPrototypeOf(Element.prototype, Node.prototype);
 Document = function Document(){}
 ldvm.toolsFunc.safeProto(Document, "Document");
 Object.setPrototypeOf(Document.prototype, Node.prototype);
-ldvm.toolsFunc.defineProperty(Document.prototype, "cookie", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_set", arguments)}});
-
 HTMLDocument = function HTMLDocument(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLDocument': Illegal constructor")}
 ldvm.toolsFunc.safeProto(HTMLDocument, "HTMLDocument");
 Object.setPrototypeOf(HTMLDocument.prototype, Document.prototype);
@@ -540,7 +468,6 @@ ldvm.toolsFunc.safeProto(Performance, "Performance");
 Object.setPrototypeOf(Performance.prototype, EventTarget.prototype);
 performance = {};
 Object.setPrototypeOf(performance, Performance.prototype); 
-ldvm.toolsFunc.defineProperty(Performance.prototype, "now", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Performance.prototype, "Performance", "now", arguments)}});
 
 Screen = function Screen(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Screen': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Screen, "Screen");
@@ -614,7 +541,7 @@ ldvm.toolsFunc.defineProperty(Window.prototype, "TEMPORARY", {
     writable: false
 });
 ldvm.toolsFunc.defineProperty(window, "name", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, undefined, "Window", "name_get", arguments, '')}, set: function (){return ldvm.toolsFunc.dispatch(this, undefined, "Window", "name_set", arguments)}}); 
-ldvm.toolsFunc.defineProperty(window, "top", {configurable:false, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "top_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "top_set", arguments)}}); 
+ldvm.toolsFunc.defineProperty(window, "top", {configurable:false, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "top_get", arguments)},set:undefined}); 
 ldvm.toolsFunc.defineProperty(window, "self", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "self_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "self_set", arguments)}}); 
 ldvm.toolsFunc.defineProperty(window, "parent", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_set", arguments)}}); 
 eval = ldvm.toolsFunc.hook(eval, undefined, false, function(){}, function(){}).bind(window)
@@ -629,22 +556,29 @@ ldvm.toolsFunc.defineProperty(window, "parent", {
     set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_set", arguments)}
 }); 
 
-ldvm.toolsFunc.defineProperty(window, "MouseEvent", {configurable:true, enumerable:false, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "MouseEvent", arguments)}}); 
 
-
-
-// 全局变量初始化
+//全局变量初始化
 !function () {
     let onEnter = function (obj) {
         try {
-            // 直接调用 printLog 写入文件
             ldvm.toolsFunc.printLog(obj.args);
         }
-        catch (e) { }
+        catch (e) {
+
+        }
+
+
     }
-    // 备份原生console.log（可选，如果你想同时保留控制台输出）
-    const originalLog = console.log;
-    console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () { }, true);
+    console.log = ldvm.toolsFunc.hook(
+        console.log,
+        undefined,
+        false,
+        onEnter,
+        function () { },
+        ldvm.config.print
+    );
+   
+
 }();
 
 //用户代码
@@ -662,7 +596,7 @@ history = ldvm.toolsFunc.proxy(history, "history")
 performance = ldvm.toolsFunc.proxy(performance, "performance")  
 localStorage = ldvm.toolsFunc.proxy(localStorage, 'localStorage');
 chrome = ldvm.toolsFunc.proxy(chrome, 'chrome');
-globalThis = window
+globlaThis = window
 
 //用户代码
 //用户代码

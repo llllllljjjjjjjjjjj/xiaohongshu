@@ -1,0 +1,4 @@
+{getOwnPropertyDescriptor|obj}:[window] -> prop:[_AUuXfEG27Xa3x],type:[[object Undefined]] 
+{defineProperty|obj:[window] -> prop:[_AUuXfEG27Xa3x]} 
+{set|obj:[window] -> prop:[_AUuXfEG27Xa3x],type:[[object Function]]} 
+{get|obj:[window] -> [_AUuXfEG27Xa3x], type: [[object Function]]} 

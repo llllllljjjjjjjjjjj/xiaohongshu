@@ -14,6 +14,7 @@ const proxy = new Proxy(globalThis, handler);
 
 Object.defineProperty(globalThis, 'test', {
     get: function() {
+        //console.log(this)
         console.log('getter this === globalThis:', this === globalThis);
         console.log('getter this === proxy:', this === proxy);
         console.log('getter this instanceof Window:', this instanceof Window);

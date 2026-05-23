@@ -1,7 +1,4 @@
 const _name_ = "test";
-const fs = require("fs");
-    const path = require("path");
-fs.writeFileSync("log.txt", "")
 //全局对象配置
 debugger
 ldvm = {
@@ -387,32 +384,24 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
     ldvm.envFunc.Window_top_get = function Window_top_get() {
         return window;
     };
+    ldvm.envFunc.Window_top_set = function Window_top_set() {
+        return window;
+    };
     ldvm.envFunc.Window_self_get = function Window_self_get() {
         return window;
     };
-    ldvm.envFunc.Window_self_set = function Window_self_set() { 
-        return window; 
-    };
+    ldvm.envFunc.Window_self_set = function Window_self_set() { return window; };
     ldvm.envFunc.Window_parent_set = function Window_parent_set() {
-        return window;
-    };
-    ldvm.envFunc.Window_top_set = function Window_top_set() {
-
         return window;
     };
     ldvm.envFunc.Window_parent_get = function Window_parent_get() {
         return window;
     };
-    ldvm.envFunc.Performance_now = function Performance_now() {
-        return 1090439.5999999046
-    }
-    ldvm.envFunc.Document_cookie_get = function Document_cookie_get() {
-        return 'abRequestId=4222a77c-10b2-5f59-b50a-e01d52c92c8c; a1=19d66558c7dsjg559n648ipqioxw68nif3go29mvj50000338198; webId=13ed1adc9daa427ad356093927d6d34f; gid=yjfKK22jy8idyjfKK22YSqj6WfMVk22jIK4YkhV3UA3lCl28EKYI3J888qqYyjY8S0JSSDKi; ets=1779012627065; xsecappid=xhs-pc-web; webBuild=6.12.1; loadts=1779550621550; websectiga=82e85efc5500b609ac1166aaf086ff8aa4261153a448ef0be5b17417e4512f28; unread={%22ub%22:%226a1041f9000000003701f8e2%22%2C%22ue%22:%2269fec80e000000001b021b41%22%2C%22uc%22:23}'
-
-    }
+   
 }()
 
 !function () {
+
     // 安全的对象转字符串（兼容循环引用）
     const safeStringify = (obj) => {
         const seen = new WeakSet();
@@ -427,23 +416,12 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
 
     ldvm.toolsFunc.printLog = function printLog(logList) {
         let log = "";
-        for (let i = 0; i < logList.length; i++) {
+        for(let i=0; i<logList.length; i++){
             const item = logList[i];
             if (typeof item === "function") {
                 log += item.toString() + " ";
             } else if (typeof item === "object" && item !== null) {
-                try {
-                    const seen = new WeakSet();
-                    log += JSON.stringify(item, (k, v) => {
-                        if (typeof v === 'object' && v !== null) {
-                            if (seen.has(v)) return '[Circular]';
-                            seen.add(v);
-                        }
-                        return v;
-                    }, 2) + " ";
-                } catch (e) {
-                    log += '[Circular] ';
-                }
+                log += safeStringify(item) + " ";
             } else if (typeof item === "symbol") {
                 log += item.toString() + " ";
             } else {
@@ -452,19 +430,21 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
             log += "\r\n";
         }
 
+        const logDir = path.join(__dirname, "user", _name_);
+        const logPath = path.join(logDir, "log.txt");
+        
         try {
-            fs.appendFileSync("log.txt", log, "utf8");
-        } catch (e) {
-            console.error("写入失败:", e);
-        }
-    };
+            //递归创建目录，不存在就创建，存在不报错;沙箱必备：避免目录不存在导致写入失败
+            fs.mkdirSync(logDir, { recursive: true });
+            //同步写入，简单稳定;追加模式，不覆盖历史日志
+            fs.appendFileSync(logPath, log, "utf8");
+        } catch (e) {}
+    }
 }();
 //env相关代码
 EventTarget = function EventTarget(){}
 ldvm.toolsFunc.safeProto(EventTarget, "EventTarget");
 Object.setPrototypeOf(EventTarget.prototype, Object.prototype);
-ldvm.toolsFunc.defineProperty(EventTarget.prototype, "addEventListener", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, EventTarget.prototype, "EventTarget", "addEventListener", arguments)}});
-
 WindowProperties = function WindowProperties(){}
 ldvm.toolsFunc.safeProto(WindowProperties, "WindowProperties")
 Object.setPrototypeOf(WindowProperties.prototype, EventTarget.prototype)
@@ -489,7 +469,6 @@ Object.setPrototypeOf(Element.prototype, Node.prototype);
 Document = function Document(){}
 ldvm.toolsFunc.safeProto(Document, "Document");
 Object.setPrototypeOf(Document.prototype, Node.prototype);
-ldvm.toolsFunc.defineProperty(Document.prototype, "cookie", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_set", arguments)}});
 
 HTMLDocument = function HTMLDocument(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLDocument': Illegal constructor")}
 ldvm.toolsFunc.safeProto(HTMLDocument, "HTMLDocument");
@@ -540,7 +519,6 @@ ldvm.toolsFunc.safeProto(Performance, "Performance");
 Object.setPrototypeOf(Performance.prototype, EventTarget.prototype);
 performance = {};
 Object.setPrototypeOf(performance, Performance.prototype); 
-ldvm.toolsFunc.defineProperty(Performance.prototype, "now", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Performance.prototype, "Performance", "now", arguments)}});
 
 Screen = function Screen(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Screen': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Screen, "Screen");
@@ -629,22 +607,29 @@ ldvm.toolsFunc.defineProperty(window, "parent", {
     set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_set", arguments)}
 }); 
 
-ldvm.toolsFunc.defineProperty(window, "MouseEvent", {configurable:true, enumerable:false, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "MouseEvent", arguments)}}); 
 
-
-
-// 全局变量初始化
+//全局变量初始化
 !function () {
     let onEnter = function (obj) {
         try {
-            // 直接调用 printLog 写入文件
             ldvm.toolsFunc.printLog(obj.args);
         }
-        catch (e) { }
+        catch (e) {
+
+        }
+
+
     }
-    // 备份原生console.log（可选，如果你想同时保留控制台输出）
-    const originalLog = console.log;
-    console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () { }, true);
+    console.log = ldvm.toolsFunc.hook(
+        console.log,
+        undefined,
+        false,
+        onEnter,
+        function () { },
+        ldvm.config.print
+    );
+   
+
 }();
 
 //用户代码

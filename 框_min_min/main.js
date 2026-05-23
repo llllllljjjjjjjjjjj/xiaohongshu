@@ -7,7 +7,7 @@ const env = require("./config/env.config.js")
 const name = "test"
 debugger
 //清空日志
-//fs.writeFileSync(path.join(__dirname, "user", name, "log.txt"), "")
+fs.writeFileSync(path.join(__dirname, "user", name, "log.txt"), "")
 
 // ✅ 用 Node.js 原生 vm 创建上下文，Proxy 原生支持，不会被限制
 const vm1 = vm.createContext({
@@ -41,9 +41,6 @@ const code = [
 ].join("\n")
 const codeTest = [
     `const _name_ = "${name}";`,
-    `const fs = require("fs");
-    const path = require("path");`,
-    `fs.writeFileSync("log.txt", "")`,
     configCode,
     toolsCode,
     fs.readFileSync(path.join(__dirname, "tools", "printLog.js"), "utf8"), 
@@ -60,6 +57,6 @@ const codeTest = [
 
 // 输出目录也正确
 const outputPath = path.join(__dirname, "user", name, "output.js")
-fs.writeFileSync(outputPath, codeTest, 'utf8')
+fs.writeFileSync(outputPath, code, 'utf8')
 
 console.log("执行成功！文件已输出到：" + outputPath)

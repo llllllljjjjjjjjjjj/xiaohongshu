@@ -60,6 +60,3 @@ ldvm.toolsFunc.defineProperty(window, "parent", {
     get: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_get", arguments)},
     set: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "parent_set", arguments)}
 }); 
-
-ldvm.toolsFunc.defineProperty(window, "MouseEvent", {configurable:true, enumerable:false, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, window, "Window", "MouseEvent", arguments)}}); 
-
