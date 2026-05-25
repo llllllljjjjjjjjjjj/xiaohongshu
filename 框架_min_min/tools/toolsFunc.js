@@ -1,4 +1,15 @@
 !function () {
+    ldvm.toolsFunc.getCollection = function getCollection(type) {
+        let collection = [];
+        for (let i = 0; i < ldvm.memory.tag.length; i++) {
+            let tag = ldvm.memory.tag[i];
+            if (ldvm.toolsFunc.getType(tag) === type) {
+                collection.push(tag);
+            }
+        }
+        return collection;
+    }
+
     ldvm.toolsFunc.getProtoArr = function getProtoArr(key) {
         return this[ldvm.memory.symbolData] && this[ldvm.memory.symbolData][key];
     }
@@ -119,6 +130,9 @@
                 } catch (e) {
                     console.log(`{get|obj:[${objName}] -> [${prop.toString()}], error: [${e.message}]}`)
                 }
+                if ((typeof result === "function" || typeof result === "object") && result != undefined && result != null && (ldvm.memory.symbolProxy in result) && ldvm.config.isreturn) {
+                    return result[ldvm.memory.symbolProxy]
+                }
                 return result;
             },
             set: function (target, prop, value, receiver) {
@@ -212,7 +226,9 @@
             },
             has: function (target, propKey) {
                 let result = Reflect.has(target, propKey)
-                console.log(`{has|obj:[${objName}] -> prop:[${propKey.toString()}], result:[${result}]}`);
+                if (propKey !== ldvm.memory.symbolProxy) {
+                    console.log(`{has|obj:[${objName}] -> prop:[${propKey.toString()}], result:[${result}]}`);
+                }
                 return result
             },
             ownKeys: function (target) {

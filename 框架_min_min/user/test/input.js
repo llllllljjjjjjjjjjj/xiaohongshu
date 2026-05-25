@@ -447,8 +447,8 @@ glb[_0xe762c0(0x73)] = function(_0x1f8d7a, _0x4ede15, _0xb2668e) {
             return !0x1;
         if (Reflect[_0x2e6c58(0x76)][_0x2e6c58(0x22)])
             return !0x1;
-        // if (_0x2e6c58(0x6c) == typeof Proxy)
-        //     return !0x0;
+        if (_0x2e6c58(0x6c) == typeof Proxy)
+            return !0x0;
         try {
             if (_0x2e6c58(0x6d) !== _0x4d21fc[_0x2e6c58(0x62)]) {
                 function _0x813c66() {

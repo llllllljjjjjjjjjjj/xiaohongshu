@@ -11,6 +11,7 @@ ldvm = {
     "memory": {}, //内存相关
 }
 ldvm.config.proxy = true//是否开启代理
+ldvm.config.isreturn = true
 ldvm.config.print = true//是否输出日志
 ldvm.memory.symbolProxy = Symbol("proxy")
 ldvm.memory.filterProxyProp = [
@@ -19,17 +20,39 @@ ldvm.memory.filterProxyProp = [
     String.prototype, Number.prototype, Boolean.prototype,
     Math, Date, RegExp, JSON, Promise, 'prototype', '__proto__', 
     "Document", "Window", "History", "Navigator", "Location", "Performance","EventTarget", "Event", 
-    'constructor'
+    'constructor', "toString", ldvm.memory.symbolProxy
     
 ]//需要过滤的属性
 ldvm.memory.symbolData = Symbol("data"); // 保存当前对象上原型的属性
 ldvm.memory.tag = []//存储tag标签
 
 ldvm.memory.globalVar = {}
-ldvm.memory.globalVar.jsonCookie = {}//存储全局变量
+ldvm.memory.globalVar.jsonCookie = {
+  "abRequestId": "4222a77c-10b2-5f59-b50a-e01d52c92c8c",
+  "a1": "19d66558c7dsjg559n648ipqioxw68nif3go29mvj50000338198",
+  "webId": "13ed1adc9daa427ad356093927d6d34f",
+  "gid": "yjfKK22jy8idyjfKK22YSqj6WfMVk22jIK4YkhV3UA3lCl28EKYI3J888qqYyjY8S0JSSDKi",
+  "ets": "1779012627065",
+  "xsecappid": "xhs-pc-web",
+  "webBuild": "6.12.2",
+  "loadts": "1779712622983",
+  "unread": "{\"ub\":\"6a0c6b17000000003600259b\",\"ue\":\"69f351020000000035023c94\",\"uc\":31}",
+  "websectiga": "f3d8eaee8a8c63016320d94a1bd00562d516a5417bc43a032a80cbf70f07d5c0"
+}//存储全局变量
 ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "KaiTi"]//认为浏览器能够识别字体
 //工具函数代码
 !function () {
+    ldvm.toolsFunc.getCollection = function getCollection(type) {
+        let collection = [];
+        for (let i = 0; i < ldvm.memory.tag.length; i++) {
+            let tag = ldvm.memory.tag[i];
+            if (ldvm.toolsFunc.getType(tag) === type) {
+                collection.push(tag);
+            }
+        }
+        return collection;
+    }
+
     ldvm.toolsFunc.getProtoArr = function getProtoArr(key) {
         return this[ldvm.memory.symbolData] && this[ldvm.memory.symbolData][key];
     }
@@ -150,6 +173,9 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
                 } catch (e) {
                     console.log(`{get|obj:[${objName}] -> [${prop.toString()}], error: [${e.message}]}`)
                 }
+                if ((typeof result === "function" || typeof result === "object") && result != undefined && result != null && (ldvm.memory.symbolProxy in result) && ldvm.config.isreturn) {
+                    return result[ldvm.memory.symbolProxy]
+                }
                 return result;
             },
             set: function (target, prop, value, receiver) {
@@ -243,7 +269,9 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
             },
             has: function (target, propKey) {
                 let result = Reflect.has(target, propKey)
-                console.log(`{has|obj:[${objName}] -> prop:[${propKey.toString()}], result:[${result}]}`);
+                if (propKey !== ldvm.memory.symbolProxy) {
+                    console.log(`{has|obj:[${objName}] -> prop:[${propKey.toString()}], result:[${result}]}`);
+                }
                 return result
             },
             ownKeys: function (target) {
@@ -410,52 +438,117 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
         return 'abRequestId=4222a77c-10b2-5f59-b50a-e01d52c92c8c; a1=19d66558c7dsjg559n648ipqioxw68nif3go29mvj50000338198; webId=13ed1adc9daa427ad356093927d6d34f; gid=yjfKK22jy8idyjfKK22YSqj6WfMVk22jIK4YkhV3UA3lCl28EKYI3J888qqYyjY8S0JSSDKi; ets=1779012627065; xsecappid=xhs-pc-web; webBuild=6.12.1; loadts=1779550621550; websectiga=82e85efc5500b609ac1166aaf086ff8aa4261153a448ef0be5b17417e4512f28; unread={%22ub%22:%226a1041f9000000003701f8e2%22%2C%22ue%22:%2269fec80e000000001b021b41%22%2C%22uc%22:23}'
 
     }
+    
+    ldvm.envFunc.Navigator_webdriver_get = function Navigator_webdriver_get () {
+        return false
+    }
+    ldvm.envFunc.Document_createElement = function Document_createElement() {
+        let tagName = arguments[0].toLowerCase();
+        let options = arguments[1];
+        let tag = {}
+        switch (tagName){
+            case "div":
+                tag = ldvm.toolsFunc.createProxyObj(tag, HTMLDivElement, `${tagName}` )
+                ldvm.memory.tag.push(tag);
+                break;
+                default: 
+                console.log(`Document_createElement_${tagName}未实现`)
+        }
+        return tag
+    }
+    ldvm.envFunc.Location_host_get = function Location_host_get() {
+        return 'www.xiaohongshu.com'
+    }
+    ldvm.envFunc.Document_cookie_get = function Document_cookie_get() {
+        let jsonCookie = ldvm.memory.globalVar.jsonCookie;
+        let tempCookie = ""
+        for (const key in jsonCookie) {
+            if (key === "") {
+                tempCookie += `${jsonCookie[key]}; `
+
+            }
+            else {
+                tempCookie += `${key}=${jsonCookie[key]}; `
+
+            }
+        }
+        return tempCookie
+    }
+    ldvm.envFunc.Document_cookie_set = function Document_cookie_set() {
+        let cookieValue = arguments[0];
+        let index = cookieValue.indexOf(";");
+        if (index !== -1) {
+            cookieValue = cookieValue.substring(0, index)
+        }
+        if (cookieValue.indexOf("=") === -1) {
+            ldvm.memory.globalVar.jsonCookie[""] = cookieValue.trim();
+        } else {
+            let item = cookieValue.split("=");
+            let k = item[0];
+            let v = item[1];
+            ldvm.memory.globalVar.jsonCookie[k] = v;
+        }
+    }
+    ldvm.envFunc.Document_getElementsByTagName = function Document_getElementsByTagName() {
+        let tagName = arguments[0].toLowerCase();
+        let collection = []
+        switch (tagName) {
+            case "div":
+                collection = ldvm.toolsFunc.getCollection('[object HTMLDivElement]');
+                collection = ldvm.toolsFunc.createProxyObj(collection, HTMLCollection, `Document_getElementsByTagName_${tagName}`)
+                break;
+            default:
+                console.log(`Document_getElementsByTagName_${tagName}未实现`);
+                break;
+        }
+        return collection
+    }
+
 }()
 
 !function () {
-    // 安全的对象转字符串（兼容循环引用）
+    // 安全序列化：兼容循环引用+过滤代理内部私有属性
     const safeStringify = (obj) => {
         const seen = new WeakSet();
         return JSON.stringify(obj, (key, value) => {
+            // 过滤代理内部的Symbol标记，避免输出无关内容
+            if (typeof key === 'symbol' || key === ldvm.memory.symbolProxy || key === ldvm.memory.symbolData) {
+                return undefined;
+            }
             if (typeof value === 'object' && value !== null) {
                 if (seen.has(value)) return '[Circular Reference]';
                 seen.add(value);
             }
             return value;
-        }, 2);
+        });
     };
 
     ldvm.toolsFunc.printLog = function printLog(logList) {
-        let log = "";
+        const logParts = [];
         for (let i = 0; i < logList.length; i++) {
             const item = logList[i];
             if (typeof item === "function") {
-                log += item.toString() + " ";
+                logParts.push(item.toString());
             } else if (typeof item === "object" && item !== null) {
                 try {
-                    const seen = new WeakSet();
-                    log += JSON.stringify(item, (k, v) => {
-                        if (typeof v === 'object' && v !== null) {
-                            if (seen.has(v)) return '[Circular]';
-                            seen.add(v);
-                        }
-                        return v;
-                    }, 2) + " ";
+                    logParts.push(safeStringify(item));
                 } catch (e) {
-                    log += '[Circular] ';
+                    logParts.push('[Object Circular]');
                 }
             } else if (typeof item === "symbol") {
-                log += item.toString() + " ";
+                logParts.push(item.toString());
             } else {
-                log += String(item) + " ";
+                logParts.push(String(item));
             }
-            log += "\r\n";
         }
+        // 还原console原生格式：参数空格分隔，单次调用仅末尾加一次换行
+        const log = logParts.join(' ') + "\r\n";
 
         try {
             fs.appendFileSync("log.txt", log, "utf8");
         } catch (e) {
-            console.error("写入失败:", e);
+            // 避免循环调用console，直接用标准错误输出
+            process.stderr.write("日志写入失败: " + e.message + "\r\n");
         }
     };
 }();
@@ -490,27 +583,212 @@ Document = function Document(){}
 ldvm.toolsFunc.safeProto(Document, "Document");
 Object.setPrototypeOf(Document.prototype, Node.prototype);
 ldvm.toolsFunc.defineProperty(Document.prototype, "cookie", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "cookie_set", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "getElementsByTagName", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "getElementsByTagName", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "documentElement", { configurable: true, enumerable: true, get: function () { return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "documentElement_get", arguments) }, set: undefined });
+ldvm.toolsFunc.defineProperty(Document.prototype, "createElement", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "createElement", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "getElementById", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "getElementById", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "getElementsByTagName", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "getElementsByTagName", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "querySelector", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "querySelector", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "querySelectorAll", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "querySelectorAll", arguments)}});
+ldvm.toolsFunc.defineProperty(Document.prototype, "evaluate", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "evaluate", arguments)}});
 
-HTMLDocument = function HTMLDocument(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLDocument': Illegal constructor")}
+HTMLDocument = function HTMLDocument() { ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLDocument': Illegal constructor") }
 ldvm.toolsFunc.safeProto(HTMLDocument, "HTMLDocument");
 Object.setPrototypeOf(HTMLDocument.prototype, Document.prototype);
 document = {};
-Object.setPrototypeOf(document,HTMLDocument.prototype );
+Object.setPrototypeOf(document, HTMLDocument.prototype);
 Object.defineProperty(document, "location", {
-    configurable: false, 
-    enumerable: true, 
-    get: function() {
-        return ldvm.toolsFunc.dispatch(this, document, "document", "location_get", arguments, "123")
+    configurable: false,
+    enumerable: true,
+    get: function () {
+        return ldvm.toolsFunc.dispatch(this, document, "document", "location_get", arguments)
     },
-    set: function() {
-        return ldvm.toolsFunc.dispatch(this, document, "document", "location_get",arguments)
+    set: function () {
+        return ldvm.toolsFunc.dispatch(this, document, "document", "location_get", arguments)
     }
 })
-ldvm.toolsFunc.defineProperty(Document.prototype, "documentElement", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Document.prototype, "Document", "documentElement_get", arguments)},set:undefined});
 
+
+
+HTMLElement = function HTMLElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLElement, "HTMLElement");
+Object.setPrototypeOf(HTMLElement.prototype, Element.prototype);
+
+// HTMLAnchorElement对象
+HTMLAnchorElement = function HTMLAnchorElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLAnchorElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLAnchorElement, "HTMLAnchorElement");
+Object.setPrototypeOf(HTMLAnchorElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "target", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "target_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "target_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "download", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "download_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "download_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "ping", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "ping_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "ping_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "rel", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "rel_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "rel_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "relList", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "relList_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "relList_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "hreflang", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hreflang_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hreflang_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "type", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "type_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "type_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "referrerPolicy", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "referrerPolicy_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "referrerPolicy_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "text", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "text_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "text_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "coords", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "coords_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "coords_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "charset", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "charset_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "charset_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "name", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "name_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "name_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "rev", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "rev_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "rev_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "shape", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "shape_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "shape_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "origin", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "origin_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "protocol", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "protocol_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "protocol_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "username", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "username_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "username_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "password", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "password_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "password_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "host", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "host_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "host_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "hostname", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hostname_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hostname_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "port", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "port_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "port_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "pathname", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "pathname_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "pathname_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "search", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "search_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "search_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "hash", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hash_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hash_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "href", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "href_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "href_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "toString", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "toString", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "interestForElement", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "interestForElement_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "interestForElement_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLAnchorElement.prototype, "hrefTranslate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hrefTranslate_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLAnchorElement.prototype, "HTMLAnchorElement", "hrefTranslate_set", arguments)}});
+
+// HTMLBodyElement对象
+HTMLBodyElement = function HTMLBodyElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLBodyElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLBodyElement, "HTMLBodyElement");
+Object.setPrototypeOf(HTMLBodyElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "text", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "text_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "text_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "link", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "link_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "link_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "vLink", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "vLink_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "vLink_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "aLink", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "aLink_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "aLink_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "bgColor", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "bgColor_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "bgColor_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "background", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "background_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "background_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onblur", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onblur_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onblur_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onerror", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onerror_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onerror_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onfocus", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onfocus_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onfocus_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onload", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onload_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onload_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onresize", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onresize_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onresize_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onscroll", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onscroll_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onscroll_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onafterprint", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onafterprint_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onafterprint_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onbeforeprint", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onbeforeprint_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onbeforeprint_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onbeforeunload", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onbeforeunload_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onbeforeunload_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onhashchange", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onhashchange_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onhashchange_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onlanguagechange", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onlanguagechange_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onlanguagechange_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onmessage", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onmessage_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onmessage_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onmessageerror", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onmessageerror_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onmessageerror_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onoffline", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onoffline_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onoffline_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "ononline", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ononline_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ononline_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onpagehide", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpagehide_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpagehide_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onpageshow", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpageshow_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpageshow_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onpopstate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpopstate_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onpopstate_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onrejectionhandled", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onrejectionhandled_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onrejectionhandled_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onstorage", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onstorage_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onstorage_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onunhandledrejection", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onunhandledrejection_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onunhandledrejection_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onunload", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onunload_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onunload_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "onorientationchange", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onorientationchange_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "onorientationchange_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "ongamepadconnected", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ongamepadconnected_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ongamepadconnected_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLBodyElement.prototype, "ongamepaddisconnected", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ongamepaddisconnected_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLBodyElement.prototype, "HTMLBodyElement", "ongamepaddisconnected_set", arguments)}});
+
+// HTMLCanvasElement对象
+HTMLCanvasElement = function HTMLCanvasElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLCanvasElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLCanvasElement, "HTMLCanvasElement");
+Object.setPrototypeOf(HTMLCanvasElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "width", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "width_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "width_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "height", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "height_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "height_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "captureStream", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "captureStream", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "getContext", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "getContext", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "toBlob", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "toBlob", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "toDataURL", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "toDataURL", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCanvasElement.prototype, "transferControlToOffscreen", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCanvasElement.prototype, "HTMLCanvasElement", "transferControlToOffscreen", arguments)}});
+
+// HTMLDivElement对象
+HTMLDivElement = function HTMLDivElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLDivElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLDivElement, "HTMLDivElement");
+Object.setPrototypeOf(HTMLDivElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLDivElement.prototype, "align", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLDivElement.prototype, "HTMLDivElement", "align_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLDivElement.prototype, "HTMLDivElement", "align_set", arguments)}});
+// HTMLHeadElement对象
+HTMLHeadElement = function HTMLHeadElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLHeadElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLHeadElement, "HTMLHeadElement");
+Object.setPrototypeOf(HTMLHeadElement.prototype, HTMLElement.prototype);
+
+// HTMLInputElement对象
+HTMLInputElement = function HTMLInputElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLInputElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLInputElement, "HTMLInputElement");
+Object.setPrototypeOf(HTMLInputElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "accept", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "accept_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "accept_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "alt", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "alt_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "alt_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "autocomplete", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "autocomplete_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "autocomplete_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "defaultChecked", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "defaultChecked_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "defaultChecked_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "checked", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "checked_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "checked_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "dirName", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "dirName_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "dirName_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "disabled", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "disabled_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "disabled_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "form", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "form_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "files", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "files_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "files_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "formAction", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formAction_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formAction_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "formEnctype", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formEnctype_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formEnctype_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "formMethod", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formMethod_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formMethod_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "formNoValidate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formNoValidate_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formNoValidate_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "formTarget", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formTarget_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "formTarget_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "height", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "height_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "height_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "indeterminate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "indeterminate_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "indeterminate_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "list", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "list_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "max", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "max_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "max_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "maxLength", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "maxLength_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "maxLength_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "min", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "min_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "min_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "minLength", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "minLength_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "minLength_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "multiple", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "multiple_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "multiple_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "name", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "name_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "name_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "pattern", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "pattern_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "pattern_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "placeholder", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "placeholder_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "placeholder_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "readOnly", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "readOnly_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "readOnly_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "required", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "required_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "required_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "size", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "size_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "size_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "src", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "src_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "src_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "step", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "step_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "step_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "type", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "type_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "type_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "defaultValue", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "defaultValue_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "defaultValue_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "value", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "value_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "value_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "valueAsDate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "valueAsDate_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "valueAsDate_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "valueAsNumber", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "valueAsNumber_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "valueAsNumber_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "width", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "width_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "width_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "willValidate", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "willValidate_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "validity", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "validity_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "validationMessage", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "validationMessage_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "labels", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "labels_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "selectionStart", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionStart_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionStart_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "selectionEnd", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionEnd_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionEnd_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "selectionDirection", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionDirection_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "selectionDirection_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "align", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "align_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "align_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "useMap", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "useMap_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "useMap_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "webkitdirectory", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "webkitdirectory_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "webkitdirectory_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "incremental", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "incremental_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "incremental_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "popoverTargetElement", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "popoverTargetElement_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "popoverTargetElement_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "popoverTargetAction", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "popoverTargetAction_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "popoverTargetAction_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "checkValidity", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "checkValidity", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "reportValidity", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "reportValidity", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "select", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "select", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "setCustomValidity", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "setCustomValidity", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "setRangeText", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "setRangeText", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "setSelectionRange", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "setSelectionRange", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "showPicker", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "showPicker", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "stepDown", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "stepDown", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "stepUp", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "stepUp", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLInputElement.prototype, "webkitEntries", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLInputElement.prototype, "HTMLInputElement", "webkitEntries_get", arguments)},set:undefined});
+
+// HTMLMetaElement对象
+HTMLMetaElement = function HTMLMetaElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLMetaElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLMetaElement, "HTMLMetaElement");
+Object.setPrototypeOf(HTMLMetaElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLMetaElement.prototype, "name", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "name_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "name_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLMetaElement.prototype, "httpEquiv", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "httpEquiv_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "httpEquiv_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLMetaElement.prototype, "content", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "content_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "content_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLMetaElement.prototype, "media", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "media_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "media_set", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLMetaElement.prototype, "scheme", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "scheme_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLMetaElement.prototype, "HTMLMetaElement", "scheme_set", arguments)}});
+
+// HTMLSpanElement对象
+HTMLSpanElement = function HTMLSpanElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLSpanElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLSpanElement, "HTMLSpanElement");
+Object.setPrototypeOf(HTMLSpanElement.prototype, HTMLElement.prototype);
 
 Navigator = function Navigator(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Navigator': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Navigator, "Navigator");
+ldvm.toolsFunc.defineProperty(Navigator.prototype, "webdriver", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Navigator.prototype, "Navigator", "webdriver_get", arguments)},set:undefined});
+
+
 Object.setPrototypeOf(Navigator.prototype, Object.prototype);
 navigator = {};
 Object.setPrototypeOf(navigator, Navigator.prototype); 
@@ -528,6 +806,7 @@ ldvm.toolsFunc.safeProto(Location, "Location");
 Object.setPrototypeOf(Location.prototype, Object.prototype);
 location = {};
 Object.setPrototypeOf(location, Location.prototype); 
+ldvm.toolsFunc.defineProperty(location, "host", {configurable:false, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, location, "Location", "host_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, location, "Location", "host_set", arguments)}}); 
 
 History = function History(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'History': Illegal constructor")}
 ldvm.toolsFunc.safeProto(History, "History");
@@ -565,6 +844,17 @@ chrome = {};
 ldvm.toolsFunc.defineProperty(chrome, "loadTimes", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, chrome, "undefined", "loadTimes", arguments)}}); 
 ldvm.toolsFunc.defineProperty(chrome, "csi", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, chrome, "undefined", "csi", arguments)}}); 
 ldvm.toolsFunc.defineProperty(chrome, "app", {configurable:true, enumerable:true, writable:true, value: {}}); 
+
+WebGLRenderingContext = function WebGLRenderingContext(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'WebGLRenderingContext': Illegal constructor")}
+ldvm.toolsFunc.safeProto(WebGLRenderingContext, "WebGLRenderingContext");
+Object.setPrototypeOf(WebGLRenderingContext.prototype, Object.prototype);
+// HTMLCollection对象
+HTMLCollection = function HTMLCollection(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLCollection': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLCollection, "HTMLCollection");
+Object.setPrototypeOf(HTMLCollection.prototype, Object.prototype);
+ldvm.toolsFunc.defineProperty(HTMLCollection.prototype, "length", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLCollection.prototype, "HTMLCollection", "length_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(HTMLCollection.prototype, "item", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCollection.prototype, "HTMLCollection", "item", arguments)}});
+ldvm.toolsFunc.defineProperty(HTMLCollection.prototype, "namedItem", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, HTMLCollection.prototype, "HTMLCollection", "namedItem", arguments)}});
 
 //window对象
 window = globalThis
@@ -633,18 +923,23 @@ ldvm.toolsFunc.defineProperty(window, "MouseEvent", {configurable:true, enumerab
 
 
 
-// 全局变量初始化
 !function () {
-    let onEnter = function (obj) {
+    // 提前备份原生console方法，避免被代理污染
+    const originalLog = console.log.bind(console);
+    const originalError = console.error.bind(console);
+
+    const onEnter = function (obj) {
         try {
-            // 直接调用 printLog 写入文件
             ldvm.toolsFunc.printLog(obj.args);
+        } catch (e) {
+            originalError("日志处理异常:", e);
         }
-        catch (e) { }
-    }
-    // 备份原生console.log（可选，如果你想同时保留控制台输出）
-    const originalLog = console.log;
-    console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () { }, true);
+    };
+
+    // 基于原生方法hook，保留控制台正常输出
+    console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () {}, true);
+   
+
 }();
 
 //用户代码
@@ -1114,8 +1409,8 @@ glb[_0xe762c0(0x73)] = function(_0x1f8d7a, _0x4ede15, _0xb2668e) {
             return !0x1;
         if (Reflect[_0x2e6c58(0x76)][_0x2e6c58(0x22)])
             return !0x1;
-        // if (_0x2e6c58(0x6c) == typeof Proxy)
-        //     return !0x0;
+        if (_0x2e6c58(0x6c) == typeof Proxy)
+            return !0x0;
         try {
             if (_0x2e6c58(0x6d) !== _0x4d21fc[_0x2e6c58(0x62)]) {
                 function _0x813c66() {

@@ -38,6 +38,8 @@ function getCode(name, type) {
     code += getFile("Element")
     code += getFile("Document")
     code += getFile("HTMLDocument")
+    code += getFile("HTMLElement")
+    code += getHtmlElement()
     code += getFile("Navigator")
     code += getFile("Storage")
     code += getFile("Location")
@@ -45,7 +47,11 @@ function getCode(name, type) {
     code += getFile("Performance")
     code += getFile("Screen")
     code += getFile('chrome')
+    code += getFile('WebGLRenderingContext')
+    code += getFile("HTMLCollection")
+    
     code += getFile("globalThis")//全局环境
+    
     return code
 }
 
