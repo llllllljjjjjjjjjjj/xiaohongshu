@@ -39,8 +39,14 @@
                 tag = ldvm.toolsFunc.createProxyObj(tag, HTMLDivElement, `${tagName}` )
                 ldvm.memory.tag.push(tag);
                 break;
-                default: 
+            case "html":
+                tag = ldvm.toolsFunc.createProxyObj(tag, HTMLHtmlElement, `${tagName}`)
+                ldvm.memory.tag.push(tag)
+                break
+            default: 
                 console.log(`Document_createElement_${tagName}未实现`)
+            
+
         }
         return tag
     }
@@ -91,5 +97,11 @@
         }
         return collection
     }
-
+    ldvm.envFunc.Document_documentElement_get = function Document_documentElement_get() {
+        for(let i = 0; i < ldvm.memory.tag.length; i++) {
+            if(ldvm.toolsFunc.getType(ldvm.memory.tag[i]) === '[object HTMLHtmlElement]') {
+                return ldvm.memory.tag[i]
+            }
+        }
+    }
 }()

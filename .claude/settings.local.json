@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.xiaohongshu.com)",
+      "Bash(start https://www.xiaohongshu.com/explore)"
+    ]
+  }
+}

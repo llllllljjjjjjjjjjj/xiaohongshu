@@ -451,8 +451,14 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
                 tag = ldvm.toolsFunc.createProxyObj(tag, HTMLDivElement, `${tagName}` )
                 ldvm.memory.tag.push(tag);
                 break;
-                default: 
+            case "html":
+                tag = ldvm.toolsFunc.createProxyObj(tag, HTMLHtmlElement, `${tagName}`)
+                ldvm.memory.tag.push(tag)
+                break
+            default: 
                 console.log(`Document_createElement_${tagName}未实现`)
+            
+
         }
         return tag
     }
@@ -503,7 +509,13 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
         }
         return collection
     }
-
+    ldvm.envFunc.Document_documentElement_get = function Document_documentElement_get() {
+        for(let i = 0; i < ldvm.memory.tag.length; i++) {
+            if(ldvm.toolsFunc.getType(ldvm.memory.tag[i]) === '[object HTMLHtmlElement]') {
+                return ldvm.memory.tag[i]
+            }
+        }
+    }
 }()
 
 !function () {
@@ -704,6 +716,12 @@ ldvm.toolsFunc.defineProperty(HTMLDivElement.prototype, "align", {configurable:t
 HTMLHeadElement = function HTMLHeadElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLHeadElement': Illegal constructor")}
 ldvm.toolsFunc.safeProto(HTMLHeadElement, "HTMLHeadElement");
 Object.setPrototypeOf(HTMLHeadElement.prototype, HTMLElement.prototype);
+
+// HTMLHtmlElement对象
+HTMLHtmlElement = function HTMLHtmlElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLHtmlElement': Illegal constructor")}
+ldvm.toolsFunc.safeProto(HTMLHtmlElement, "HTMLHtmlElement");
+Object.setPrototypeOf(HTMLHtmlElement.prototype, HTMLElement.prototype);
+ldvm.toolsFunc.defineProperty(HTMLHtmlElement.prototype, "version", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLHtmlElement.prototype, "HTMLHtmlElement", "version_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLHtmlElement.prototype, "HTMLHtmlElement", "version_set", arguments)}});
 
 // HTMLInputElement对象
 HTMLInputElement = function HTMLInputElement(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'HTMLInputElement': Illegal constructor")}
@@ -939,7 +957,8 @@ ldvm.toolsFunc.defineProperty(window, "MouseEvent", {configurable:true, enumerab
     // 基于原生方法hook，保留控制台正常输出
     console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () {}, true);
    
-
+    html = document.createElement('html')
+    html.a = 1
 }();
 
 //用户代码

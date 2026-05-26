@@ -14,5 +14,6 @@
     // 基于原生方法hook，保留控制台正常输出
     console.log = ldvm.toolsFunc.hook(originalLog, undefined, false, onEnter, function () {}, true);
    
-
+    html = document.createElement('html')
+    html.a = 1
 }();
