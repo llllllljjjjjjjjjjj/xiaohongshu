@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:www.xiaohongshu.com)",
-      "Bash(start https://www.xiaohongshu.com/explore)"
+      "Bash(start https://www.xiaohongshu.com/explore)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('框架_min_min/user/test/input.js','utf8'\\).split\\('\\\\n'\\); for\\(let i=1489;i<Math.min\\(lines.length,1505\\);i++\\) console.log\\(\\(i+1\\)+': '+lines[i].slice\\(0,200\\)\\);\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('框架_min_min/user/test/input.js','utf8'\\).split\\('\\\\n'\\); for\\(let i=20;i<30;i++\\) console.log\\(\\(i+1\\)+': '+lines[i].slice\\(0,300\\)\\);\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const line=fs.readFileSync\\('log.txt','utf8'\\).split\\('\\\\n'\\).find\\(l=>l.includes\\('apply|function:[window._AUuXfEG27Xa3x]'\\)\\); if\\(line\\){ const m=line.match\\(/type:\\\\[\\([^\\\\]]+\\)\\\\]/\\); const r=line.match\\(/result:\\\\[\\([^\\\\]]*\\)\\\\]/\\); console.log\\('type:',m&&m[1]\\); console.log\\('result:',r&&r[1]\\); } else console.log\\('not found'\\);\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('log.txt','utf8'\\).split\\('\\\\n'\\); const idx=lines.findIndex\\(l=>l.includes\\('apply|function:[window._AUuXfEG27Xa3x]'\\)\\); console.log\\('line index:',idx\\); if\\(idx>=0\\){ console.log\\('line length:',lines[idx].length\\); console.log\\('last 200 chars:',lines[idx].slice\\(-200\\)\\); }\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const line=fs.readFileSync\\('log.txt','utf8'\\).split\\('\\\\n'\\)[483]; const typeIdx=line.indexOf\\('type:'\\); const resultIdx=line.indexOf\\('result:'\\); console.log\\('type index:',typeIdx\\); console.log\\('result index:',resultIdx\\); if\\(typeIdx>=0\\) console.log\\('type:',line.slice\\(typeIdx,typeIdx+100\\)\\); if\\(resultIdx>=0\\) console.log\\('result:',line.slice\\(resultIdx,resultIdx+100\\)\\);\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const line=fs.readFileSync\\('log.txt','utf8'\\).split\\('\\\\n'\\)[483]; const errorIdx=line.indexOf\\('error:'\\); console.log\\('error index:',errorIdx\\); if\\(errorIdx>=0\\) console.log\\('error:',line.slice\\(errorIdx,errorIdx+200\\)\\); else console.log\\('no error in line'\\); console.log\\('line starts with:',line.slice\\(0,100\\)\\);\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('log.txt','utf8'\\).split\\('\\\\n'\\); console.log\\('line 483 length:',lines[483].length\\); console.log\\('line 484 starts with:',lines[484].slice\\(0,100\\)\\); console.log\\('line 484 length:',lines[484].length\\);\")"
     ]
   }
 }

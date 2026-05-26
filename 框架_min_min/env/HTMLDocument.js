@@ -13,5 +13,6 @@ Object.defineProperty(document, "location", {
         return ldvm.toolsFunc.dispatch(this, document, "document", "location_get", arguments)
     }
 })
+ldvm.toolsFunc.defineProperty(HTMLDocument.prototype, "body", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLDocument.prototype, "HTMLDocument", "body_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLDocument.prototype, "HTMLDocument", "body_set", arguments)}});
 
 

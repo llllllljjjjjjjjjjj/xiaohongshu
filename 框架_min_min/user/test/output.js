@@ -10,7 +10,7 @@ ldvm = {
     "config": {}, //配置相关
     "memory": {}, //内存相关
 }
-ldvm.config.proxy = true//是否开启代理
+ldvm.config.proxy = false//是否开启代理
 ldvm.config.isreturn = true
 ldvm.config.print = true//是否输出日志
 ldvm.memory.symbolProxy = Symbol("proxy")
@@ -442,6 +442,12 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
     ldvm.envFunc.Navigator_webdriver_get = function Navigator_webdriver_get () {
         return false
     }
+    ldvm.envFunc.Navigator_userAgent_get = function Navigator_userAgent_get () {
+        return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    }
+    ldvm.envFunc.Performance_getEntriesByType = function Performance_getEntriesByType() {
+        return []
+    }
     ldvm.envFunc.Document_createElement = function Document_createElement() {
         let tagName = arguments[0].toLowerCase();
         let options = arguments[1];
@@ -516,6 +522,22 @@ ldvm.memory.globalVar.gontList = ["SimHei", "SimSun", "NSimSun", "FangSong", "Ka
             }
         }
     }
+    ldvm.envFunc.Element_getAttribute = function Element_getAttribute() {
+        let attrName = arguments[0];
+        return null;
+    }
+    ldvm.envFunc.HTMLDocument_body_get = function HTMLDocument_body_get() {
+        if (!ldvm.memory.body) {
+            let body = {};
+            body = ldvm.toolsFunc.createProxyObj(body, HTMLBodyElement, "body");
+            ldvm.memory.body = body;
+        }
+        return ldvm.memory.body;
+    }
+    ldvm.envFunc.Node_removeChild = function Node_removeChild() {
+        let child = arguments[0];
+        return child;
+    }
 }()
 
 !function () {
@@ -583,12 +605,14 @@ Object.setPrototypeOf(Window.prototype, WindowProperties.prototype)
 Node = function Node(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Node': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Node, "Node");
 Object.setPrototypeOf(Node.prototype, EventTarget.prototype);
+ldvm.toolsFunc.defineProperty(Node.prototype, "removeChild", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Node.prototype, "Node", "removeChild", arguments)}});
 
 Element = function Element() {
   ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Element': Illegal constructor");
 };
 ldvm.toolsFunc.safeProto(Element, "Element");
 Object.setPrototypeOf(Element.prototype, Node.prototype);
+ldvm.toolsFunc.defineProperty(Element.prototype, "getAttribute", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Element.prototype, "Element", "getAttribute", arguments)}});
 
 
 Document = function Document(){}
@@ -619,6 +643,7 @@ Object.defineProperty(document, "location", {
         return ldvm.toolsFunc.dispatch(this, document, "document", "location_get", arguments)
     }
 })
+ldvm.toolsFunc.defineProperty(HTMLDocument.prototype, "body", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, HTMLDocument.prototype, "HTMLDocument", "body_get", arguments)},set: function (){return ldvm.toolsFunc.dispatch(this, HTMLDocument.prototype, "HTMLDocument", "body_set", arguments)}});
 
 
 
@@ -805,6 +830,7 @@ Object.setPrototypeOf(HTMLSpanElement.prototype, HTMLElement.prototype);
 Navigator = function Navigator(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Navigator': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Navigator, "Navigator");
 ldvm.toolsFunc.defineProperty(Navigator.prototype, "webdriver", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Navigator.prototype, "Navigator", "webdriver_get", arguments)},set:undefined});
+ldvm.toolsFunc.defineProperty(Navigator.prototype, "userAgent", {configurable:true, enumerable:true, get: function (){return ldvm.toolsFunc.dispatch(this, Navigator.prototype, "Navigator", "userAgent_get", arguments)},set:undefined});
 
 
 Object.setPrototypeOf(Navigator.prototype, Object.prototype);
@@ -838,6 +864,7 @@ Object.setPrototypeOf(Performance.prototype, EventTarget.prototype);
 performance = {};
 Object.setPrototypeOf(performance, Performance.prototype); 
 ldvm.toolsFunc.defineProperty(Performance.prototype, "now", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Performance.prototype, "Performance", "now", arguments)}});
+ldvm.toolsFunc.defineProperty(Performance.prototype, "getEntriesByType", {configurable:true, enumerable:true, writable:true, value: function (){return ldvm.toolsFunc.dispatch(this, Performance.prototype, "Performance", "getEntriesByType", arguments)}});
 
 Screen = function Screen(){ldvm.toolsFunc.throwError("TypeError", "Failed to construct 'Screen': Illegal constructor")}
 ldvm.toolsFunc.safeProto(Screen, "Screen");

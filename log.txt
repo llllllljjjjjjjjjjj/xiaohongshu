@@ -1,5 +1,15 @@
-{getOwnPropertyDescriptor|obj}:[html_ID(1)] -> prop:[a],type:[[object Undefined]]
-{defineProperty|obj:[html_ID(1)] -> prop:[a]}
-{set|obj:[html_ID(1)] -> prop:[a],value:[1]}
-{getPrototypeOf|obj:[document]}
-{get|obj:[document] -> [documentElement], ret: [[object HTMLHtmlElement]]}
+{}
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+Document_getElementsByTagName_*未实现
+{}
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+[EventTarget_addEventListener 正在执行]，错误信息: 环境函数未定义
+Document_getElementsByTagName_*未实现
+mns0201_0

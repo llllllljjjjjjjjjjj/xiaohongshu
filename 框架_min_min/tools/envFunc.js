@@ -30,6 +30,12 @@
     ldvm.envFunc.Navigator_webdriver_get = function Navigator_webdriver_get () {
         return false
     }
+    ldvm.envFunc.Navigator_userAgent_get = function Navigator_userAgent_get () {
+        return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    }
+    ldvm.envFunc.Performance_getEntriesByType = function Performance_getEntriesByType() {
+        return []
+    }
     ldvm.envFunc.Document_createElement = function Document_createElement() {
         let tagName = arguments[0].toLowerCase();
         let options = arguments[1];
@@ -103,5 +109,21 @@
                 return ldvm.memory.tag[i]
             }
         }
+    }
+    ldvm.envFunc.Element_getAttribute = function Element_getAttribute() {
+        let attrName = arguments[0];
+        return null;
+    }
+    ldvm.envFunc.HTMLDocument_body_get = function HTMLDocument_body_get() {
+        if (!ldvm.memory.body) {
+            let body = {};
+            body = ldvm.toolsFunc.createProxyObj(body, HTMLBodyElement, "body");
+            ldvm.memory.body = body;
+        }
+        return ldvm.memory.body;
+    }
+    ldvm.envFunc.Node_removeChild = function Node_removeChild() {
+        let child = arguments[0];
+        return child;
     }
 }()
